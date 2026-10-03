@@ -26,4 +26,12 @@
 
 源正文已有的外部链接与远程图片会保留，Obsidian 展示笔记时可能按其自身行为加载远程图片。插件本身不抓取这些链接。
 
+社区审核会提示“直接访问文件系统”和“遍历仓库文件”：前者用于读取你指定的 BiliNote 本机结果，后者用于找回已移动的笔记。这些访问范围在上面披露。
+
+## 构建与发布
+
+源码位于 `src/main.js` 和 `src/styles.css`。`npm run build` 会生成根目录的安装文件，以及 `.release/1.4.1/` 中的三个发布文件；即使旧的 `main.js` 和 `styles.css` 被移除，也能重新构建。
+
+GitHub Actions 会在 Windows、Linux 上运行检查。推送与 manifest 一致的版本标签后，流水线为三个安装文件生成并验证 GitHub 来源证明，再公开发布。无需把个人密钥写入仓库。
+
 插件代码采用 MIT 许可证；BiliNote 的代码、安装包与个人数据均未包含在发布项目中。完整说明、限制和开发命令见 [README.md](README.md)；上架步骤见 [PUBLISHING.md](PUBLISHING.md)。

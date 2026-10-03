@@ -4,7 +4,7 @@
 
 ## 已准备
 
-- 插件 ID：`bilinote-sync`；名称：`BiliNote Sync`；候选版本：`1.4.0`。
+- 插件 ID：`bilinote-sync`；名称：`BiliNote Sync`；当前版本：`1.4.1`。
 - 根目录包含可读源代码 `main.js`、`manifest.json`、`styles.css`、README、MIT LICENSE、测试与检查脚本。
 - manifest 设置 `isDesktopOnly: true`，最低版本为本次实际验证的 1.13.7；没有声明未经验证的更老版本兼容性。
 - README 披露仓库外文件访问、图片硬链接、缓存永久删除、平台限制和外部依赖。
@@ -16,17 +16,21 @@
 
 上传这里的项目文件，使 `main.js`、`manifest.json`、`README.md`、`LICENSE` 位于默认分支根目录。**只上传这个发布项目的文件，不上传整个 Codex 工作目录、Obsidian 仓库或 BiliNote 安装目录。** 不上传 `node_modules`、`.release`、测试生成目录、`data.json`、Cookie、API Key、`.env`、数据库或个人笔记。
 
-推荐从 Git 工具按 `.gitignore` 上传，或直接上传候选源码 ZIP 的内容。可先在本机执行 `npm ci`、`npm run check`；检查通过后执行 `npm run build`。
+推荐从 Git 工具按 `.gitignore` 上传。公开仓库已经建立：[Rui-0221/bilinote-sync](https://github.com/Rui-0221/bilinote-sync)。先在本机执行 `npm ci`、`npm run check`；检查通过后提交源码。源码在 `src` 中，根目录的安装文件由构建命令重新生成。
 
 ## 2. 发布 GitHub Release
 
-新建 Release，Tag 精确填写 **1.4.0**，与 manifest 的 version 完全相同，不加 `v`。附件单独上传：
+Tag 精确填写 **1.4.1**，与 manifest 的 version 完全相同，不加 `v`。推送默认分支和版本标签后，GitHub Actions 会检查 Windows 与 Linux 构建，为以下附件生成并验证来源证明，再创建正式 Release：
 
 1. `main.js`
 2. `manifest.json`
 3. `styles.css`
 
-这些文件由 `npm run build` 放在 `.release/1.4.0/`。只上传一个 ZIP 或使用 GitHub 自动生成的源码 ZIP，不能代替这三个附件。Release 应为公开的正式发布版本。
+这些文件由 `npm run build` 放在 `.release/1.4.1/`。等待 Actions 成功后确认三个附件都存在。只上传一个 ZIP 或使用 GitHub 自动生成的源码 ZIP，不能代替这三个附件。
+
+构建回归检查会从没有根目录 `main.js`、`styles.css` 的目录开始，核对重新生成的文件与源码一致。来源证明由 GitHub 托管流水线使用临时凭据签发，无需上传个人 API Key 或签名私钥。
+
+更新后，在社区管理页点击 **Check for new releases** 获取新版审核。直接文件系统访问与仓库枚举是读取本机 BiliNote 结果、恢复移动笔记所需的能力，README 已披露；审核可能继续展示相应提示。
 
 ## 3. 提交社区目录
 
@@ -39,7 +43,7 @@
 
 ## 后续更新
 
-同时修改 manifest 与 package 的版本，在 `versions.json` 增加最低应用版本映射，运行全部检查，再创建精确同名 Tag 的 Release 和三个附件。已经发布的插件通常无需每个版本重新提交目录。
+同时修改 manifest、package 与 package-lock 的版本，在 `versions.json` 增加最低应用版本映射，运行全部检查，再推送精确同名 Tag。流水线会创建 Release、来源证明和三个附件。已经发布的插件通常无需每个版本重新提交目录。
 
 ## 参考
 

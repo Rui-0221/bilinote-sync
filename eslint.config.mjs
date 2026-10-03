@@ -6,9 +6,9 @@ export default defineConfig([
   { ignores: ['node_modules/**', '.release/**', '*test-*/**', '**/*.cjs'] },
   ...obsidianmd.configs.recommended,
   {
-    files: ['main.js'],
+    files: ['src/main.js'],
     rules: {
-      // Obsidian loads this readable, unbundled installation asset as CommonJS.
+      // Obsidian loads the readable, unbundled CommonJS output from this source.
       '@typescript-eslint/no-require-imports': 'off',
       'obsidianmd/ui/sentence-case': ['warn', { brands: ['BiliNote', 'Obsidian', 'Markdown'], enforceCamelCaseLower: true }],
     },

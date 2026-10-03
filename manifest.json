@@ -1,7 +1,7 @@
 {
   "id": "bilinote-sync",
   "name": "BiliNote Sync",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "minAppVersion": "1.13.7",
   "description": "Import selected local BiliNote notes and screenshots, with optional automatic import and shared image storage.",
   "author": "BiliNote Sync contributors",

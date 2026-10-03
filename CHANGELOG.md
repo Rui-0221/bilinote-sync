@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.1
+
+- Fix clean build verification: generate root installation assets from tracked `src/main.js` and `src/styles.css`, even when the previous outputs have been removed.
+- Add a regression test for missing outputs and repeatable release assets.
+- Add GitHub Actions checks on Windows and Linux and signed build provenance for all three release assets. Tagged releases are published only after verification and attestation.
+- Use the public npm registry for reproducible dependency installation on hosted runners. Import behavior and saved settings are unchanged.
+
 ## 1.4.0
 
 First community release candidate, based on the local importer.

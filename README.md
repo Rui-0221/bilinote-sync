@@ -56,7 +56,7 @@ Remote links and images already present in source Markdown are preserved. Obsidi
 
 ## Development
 
-The readable CommonJS `main.js` is both source and the installation asset; there is no bundled runtime dependency. Node.js 22+ is required only for development and fixture tests.
+The readable CommonJS source is `src/main.js`, with source styles in `src/styles.css`. There is no bundled runtime dependency. Node.js 22+ is required only for development and fixture tests. `npm run build` recreates the root `main.js` and `styles.css` from source, including when a reviewer removes previous build outputs.
 
 ```sh
 npm ci
@@ -66,7 +66,11 @@ npm run build
 
 The checks cover import filtering, missing images, state recovery, personal-edit preservation, selection/cancellation, shared-file identity, fallback/rollback, deleted/moved notes, encoded image paths, vault path boundaries, settings changes, cleanup ownership and serialized persistence. Test fixtures contain synthetic content, live inside ignored `*test-*` directories, and do not access a real vault.
 
-`npm run build` copies exactly `main.js`, `manifest.json` and `styles.css` into `.release/1.4.0/`. Publish these as three individual GitHub release attachments under tag **1.4.0**, not only inside a ZIP. See [PUBLISHING.md](PUBLISHING.md).
+`npm run build` prepares exactly `main.js`, `manifest.json` and `styles.css` in `.release/1.4.1/`. The build regression test starts without root installation assets and checks exact, repeatable output.
+
+GitHub Actions runs the checks on Windows and Linux. Pushing tag **1.4.1** triggers a release build, creates GitHub artifact attestations for all three files, verifies the signed provenance, and publishes the files as individual release attachments. The workflow uses short-lived GitHub credentials; no personal API key or signing key is required. See [PUBLISHING.md](PUBLISHING.md).
+
+The community scanner reports direct filesystem access because this importer reads the configured BiliNote directory outside the vault. Vault enumeration supports recovery of moved imports. These capabilities are disclosed above and remain visible in the review.
 
 ## License and support
 

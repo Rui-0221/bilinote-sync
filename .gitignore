@@ -21,3 +21,13 @@
 /scripts/*
 !/scripts/check-release.cjs
 !/scripts/prepare-release.cjs
+!/scripts/verify-build.cjs
+!/src/
+/src/*
+!/src/main.js
+!/src/styles.css
+!/.github/
+/.github/*
+!/.github/workflows/
+/.github/workflows/*
+!/.github/workflows/release.yml
