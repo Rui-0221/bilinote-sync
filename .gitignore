@@ -1,0 +1,23 @@
+# Publish only reviewed source files. Other files are ignored by default.
+/*
+!/.gitignore
+!/main.js
+!/manifest.json
+!/styles.css
+!/package.json
+!/package-lock.json
+!/eslint.config.mjs
+!/versions.json
+!/README.md
+!/README.zh-CN.md
+!/PUBLISHING.md
+!/CHANGELOG.md
+!/LICENSE
+!/verify.cjs
+!/verify-hardlinks.cjs
+!/verify-selective-import.cjs
+!/verify-community-audit.cjs
+!/scripts/
+/scripts/*
+!/scripts/check-release.cjs
+!/scripts/prepare-release.cjs

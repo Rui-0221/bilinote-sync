@@ -1,0 +1,18 @@
+{
+  "name": "bilinote-sync",
+  "version": "1.4.0",
+  "private": true,
+  "description": "Import selected local BiliNote notes and screenshots into an Obsidian desktop vault.",
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint main.js manifest.json package.json --max-warnings 0",
+    "test": "node verify.cjs && node verify-hardlinks.cjs && node verify-selective-import.cjs && node verify-community-audit.cjs",
+    "check": "node --check main.js && npm run lint && npm test && node scripts/check-release.cjs",
+    "build": "node scripts/prepare-release.cjs"
+  },
+  "engines": { "node": ">=22" },
+  "devDependencies": {
+    "eslint": "^9.39.0",
+    "eslint-plugin-obsidianmd": "0.4.2"
+  }
+}

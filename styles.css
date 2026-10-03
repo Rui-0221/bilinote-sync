@@ -1,0 +1,9 @@
+.bilinote-import-picker { display: flex; flex-direction: column; gap: 8px; }
+.bilinote-import-search { width: 100%; }
+.bilinote-import-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.bilinote-import-list { max-height: 45vh; overflow-y: auto; border: 1px solid var(--background-modifier-border); border-radius: 6px; }
+.bilinote-import-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-bottom: 1px solid var(--background-modifier-border); cursor: pointer; }
+.bilinote-import-row:last-child { border-bottom: none; }
+.bilinote-import-row input { flex: 0 0 auto; margin-top: 3px; }
+.bilinote-import-row-info { min-width: 0; overflow-wrap: anywhere; }
+.bilinote-import-row-meta, .bilinote-import-status { color: var(--text-muted); font-size: var(--font-ui-small); }
