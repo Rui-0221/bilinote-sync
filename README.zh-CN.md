@@ -34,7 +34,7 @@
 
 ## 构建与发布
 
-源码位于 `src/main.js` 和 `src/styles.css`。`npm run build` 会生成根目录的安装文件，以及 `.release/1.4.2/` 中的三个发布文件；即使旧的 `main.js` 和 `styles.css` 被移除，也能重新构建。新增 24 个隔离测试，验证独立分集清理、缓存共享、失败重试、异常记录和最后检查期间的改写；测试只用合成文件，不操作真实仓库。
+源码位于 `src/plugin.cjs` 和 `src/plugin.css`。`npm run build` 会生成根目录的安装文件，以及 `.release/1.4.3/` 中的三个发布文件；即使旧的 `main.js` 和 `styles.css` 被移除，也能重新构建。新增 24 个隔离测试，验证独立分集清理、缓存共享、失败重试、异常记录和最后检查期间的改写；测试只用合成文件，不操作真实仓库。
 
 GitHub Actions 会在 Windows、Linux 上运行检查。推送与 manifest 一致的版本标签后，流水线为三个安装文件生成并验证 GitHub 来源证明，再公开发布。无需把个人密钥写入仓库。
 

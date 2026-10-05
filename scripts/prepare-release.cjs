@@ -6,8 +6,10 @@ async function main() {
   if (!/^\d+\.\d+\.\d+$/.test(manifest.version)) throw new Error('Invalid version');
   // Reviewers remove generated installation assets before running the build.
   // Recreate them from tracked source instead of using the outputs as inputs.
-  for (const file of ['main.js', 'styles.css']) {
-    await fs.copyFile(path.join(root, 'src', file), path.join(root, file));
+  // Source names differ from release assets: a recursive clean must not remove
+  // the build inputs along with all copies of main.js and styles.css.
+  for (const [input, output] of [['plugin.cjs', 'main.js'], ['plugin.css', 'styles.css']]) {
+    await fs.copyFile(path.join(root, 'src', input), path.join(root, output));
   }
   const output = path.join(root, '.release', manifest.version);
   await fs.mkdir(output, { recursive: true });

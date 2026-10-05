@@ -1,7 +1,7 @@
 {
   "id": "bilinote-sync",
   "name": "BiliNote Sync",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "minAppVersion": "1.13.7",
   "description": "Import selected local BiliNote notes and screenshots, with independent cleanup of imported completed media.",
   "author": "BiliNote Sync contributors",

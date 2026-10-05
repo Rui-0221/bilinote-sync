@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.3
+
+- Fix community clean-build verification by giving tracked source inputs distinct names (`src/plugin.cjs` and `src/plugin.css`), so cleaning release asset filenames throughout the checkout does not remove the source.
+- Reproduce recursive removal of `main.js` and `styles.css` in an isolated build test, then verify exact, repeatable outputs. Include the CommonJS source in the Obsidian lint checks.
+- Keep the 1.4.2 import behavior, cache safeguards and existing settings unchanged.
+
 ## 1.4.2
 
 - Clean verified, imported episodes independently while other episodes are generating. Preserve downloads shared with queued, running, failed/retryable or unimported tasks.
