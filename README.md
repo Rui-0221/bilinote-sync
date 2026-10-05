@@ -40,7 +40,9 @@ The plugin does not run while Obsidian is closed. All settings are saved per vau
 
 **完成后清理下载音视频** is **off for new installations**. It is destructive when enabled: after checking saved notes and all referenced screenshots, the plugin permanently deletes eligible downloaded audio/video files directly inside BiliNote's `data` folder. It does not use a trash bin. Regeneration, retranscription or additional screenshots may require downloading the video again.
 
-Only normal audio/video files with a filename stem matching a completed video's ID are eligible. Unknown names, redirected directories, symbolic links, changed files, recent writes and media for videos with unimported results are retained. Active BiliNote tasks pause cleanup. A manual selection scopes automatic cleanup to the selected videos. **立即清理** checks already imported notes without importing others. Only enable cleanup if you are comfortable deleting these cached downloads; keep your original videos outside this cache.
+Only normal audio/video files with a filename stem matching a completed video's ID are eligible; the legacy bare Bilibili ID and its explicit first-episode name are treated as aliases. Each episode can be cleaned independently of unrelated active tasks. Media shared with queued, running, failed/retryable or unimported tasks is retained. Explicitly removed failed tasks release their references; removing a still-running history entry does not.
+
+Unknown names, redirected directories, symbolic links, changed files and recent writes are retained. Damaged results and missing status records protect their identified media. An unresolved task identity or malformed series receipt defers deletion conservatively. A final scan catches new references before the last file checks, but there is no shared transaction/lock with BiliNote; keep cleanup disabled when another program is directly modifying cached files. A manual selection scopes automatic cleanup to the selected videos. **立即清理** checks already imported notes without importing others. Only enable cleanup if you are comfortable deleting these cached downloads; keep your original videos outside this cache.
 
 Existing installations retain their previously saved image-sharing and cleanup preferences when upgrading.
 
@@ -48,7 +50,7 @@ Existing installations retain their previously saved image-sharing and cleanup p
 
 This plugin has **no network requests, analytics, telemetry, account requirement or model/API charge**. It does not access BiliNote's API keys, cookies, database, `.env` or provider configuration. BiliNote's own model calls and fees are separate.
 
-The plugin reads files **outside the vault**, in the source directory you configure: completed result/status JSON files, referenced screenshot files and, only for cleanup, downloaded-media metadata. It writes Markdown and images into the selected vault folder and persists preferences, import receipts and cleanup history in its own plugin `data.json`. Reading receipts can scan vault Markdown files to recover moved imports. It does not sync your edits back to BiliNote.
+The plugin reads files **outside the vault**, in the source directory you configure: completed result/status JSON files and referenced screenshot files. Cleanup additionally reads audio metadata, `note_results/task_requests`, `note_results/series_batches` and `note_results/series_task_removals.json` to identify pending or removed tasks. These records are read locally and never uploaded. It writes Markdown and images into the selected vault folder and persists preferences, import receipts and cleanup history in its own plugin `data.json`. Reading receipts can scan vault Markdown files to recover moved imports. It does not sync your edits back to BiliNote.
 
 Shared-image mode additionally links source screenshot files to vault paths. The explicit image-merging action replaces only verified identical vault image copies. Cleanup, when enabled or explicitly requested, deletes the verified source cache files described above. No screenshots, result JSON, credentials or personal configuration belong in this public repository.
 
@@ -64,11 +66,11 @@ npm run check
 npm run build
 ```
 
-The checks cover import filtering, missing images, state recovery, personal-edit preservation, selection/cancellation, shared-file identity, fallback/rollback, deleted/moved notes, encoded image paths, vault path boundaries, settings changes, cleanup ownership and serialized persistence. Test fixtures contain synthetic content, live inside ignored `*test-*` directories, and do not access a real vault.
+The checks cover import filtering, missing images, state recovery, personal-edit preservation, selection/cancellation, shared-file identity, fallback/rollback, deleted/moved notes, encoded image paths, vault path boundaries, settings changes, cleanup ownership, independent episode cleanup, shared/retry cache retention, corrupt records, final-scan file changes and serialized persistence. Test fixtures contain synthetic content, live inside ignored `*test-*` directories, and do not access a real vault.
 
-`npm run build` prepares exactly `main.js`, `manifest.json` and `styles.css` in `.release/1.4.1/`. The build regression test starts without root installation assets and checks exact, repeatable output.
+`npm run build` prepares exactly `main.js`, `manifest.json` and `styles.css` in `.release/1.4.2/`. The build regression test starts without root installation assets and checks exact, repeatable output.
 
-GitHub Actions runs the checks on Windows and Linux. Pushing tag **1.4.1** triggers a release build, creates GitHub artifact attestations for all three files, verifies the signed provenance, and publishes the files as individual release attachments. The workflow uses short-lived GitHub credentials; no personal API key or signing key is required. See [PUBLISHING.md](PUBLISHING.md).
+GitHub Actions runs the checks on Windows and Linux. Pushing tag **1.4.2** triggers a release build, creates GitHub artifact attestations for all three files, verifies the signed provenance, and publishes the files as individual release attachments. The workflow uses short-lived GitHub credentials; no personal API key or signing key is required. See [PUBLISHING.md](PUBLISHING.md).
 
 The community scanner reports direct filesystem access because this importer reads the configured BiliNote directory outside the vault. Vault enumeration supports recovery of moved imports. These capabilities are disclosed above and remain visible in the review.
 

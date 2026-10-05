@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.2
+
+- Clean verified, imported episodes independently while other episodes are generating. Preserve downloads shared with queued, running, failed/retryable or unimported tasks.
+- Read local task requests and series receipts to identify pending downloads, including first-episode filename aliases. Explicitly removed failed tasks can release their cache references; still-running tasks remain protected.
+- Defer cleanup when task identity or series metadata cannot be resolved. Damaged completed results and missing status records continue to protect their downloads.
+- Recheck task references and file/directory identity immediately before deletion. Preserve rewritten files and newly completed, unimported results found during the final scan.
+- Add 24 isolated regression cases for per-episode cleanup and cache retention. Selective import and saved preferences remain supported; destructive cleanup stays off for new installations.
+
 ## 1.4.1
 
 - Fix clean build verification: generate root installation assets from tracked `src/main.js` and `src/styles.css`, even when the previous outputs have been removed.

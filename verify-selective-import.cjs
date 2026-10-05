@@ -47,7 +47,7 @@ async function main(){
   assert.equal(files().length,0,'startup reminder and automatic-off poll never import');
   await plugin.picker.importSelected();assert.equal(files().length,0,'empty selection never imports');
   plugin.picker.close();assert.equal(files().length,0,'closing the picker changes no notes');
-  await result(3,'FAILED'); // Cache cleanup must wait until every generation task is terminal.
+  await result(3,'FAILED'); // An unrelated failed task must not block the selected video's cleanup.
   await plugin.openPicker();
   const row=plugin.picker.rowsEl.children.find(r=>r.dataset.taskId===id(1));const check=row.inputs()[0];check.checked=true;check.events.change();
   assert.equal(plugin.picker.selected.size,1);

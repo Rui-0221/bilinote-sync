@@ -17,6 +17,7 @@
 !/verify-hardlinks.cjs
 !/verify-selective-import.cjs
 !/verify-community-audit.cjs
+!/verify-media-cleanup.cjs
 !/scripts/
 /scripts/*
 !/scripts/check-release.cjs

@@ -2,6 +2,7 @@ const { Plugin, PluginSettingTab, Notice, Modal } = require('obsidian');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { URL } = require('node:url');
 
 const DEFAULTS = {
   sourceDir: '',
@@ -333,13 +334,119 @@ async function rememberImport(imports, key, record, save) {
 function emptyCleanup() { return { deleted: [], bytesFreed: 0, candidates: [], pending: [], errors: [] }; }
 function equalPath(a, b) { return pathKey(path.resolve(a)) === pathKey(path.resolve(b)); }
 
-async function hasActiveTasks(resultsDir) {
-  for (const entry of await fs.readdir(resultsDir, { withFileTypes: true })) {
-    if (!entry.isFile() || !TASK_STATUS_NAME.test(entry.name)) continue;
-    const state = JSON.parse(await fs.readFile(path.join(resultsDir, entry.name), 'utf8'));
-    if (!['SUCCESS', 'FAILED', 'ERROR', 'CANCELLED', 'CANCELED'].includes(state.status)) return true;
+async function optionalRecord(file) {
+  try { return JSON.parse(await fs.readFile(file, 'utf8')); }
+  catch (error) {
+    if (error.code === 'ENOENT' || error instanceof SyntaxError) return null;
+    throw error;
   }
-  return false;
+}
+
+async function recordEntries(folder) {
+  try {
+    const stat = await fs.lstat(folder);
+    if (!stat.isDirectory() || stat.isSymbolicLink() || !equalPath(await fs.realpath(folder), folder)) throw new Error('任务记录目录不是普通文件夹，已保留音视频。');
+    return await fs.readdir(folder, { withFileTypes: true });
+  } catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+}
+
+function taskMediaIds(appDir, metadata, form) {
+  const ids = new Set();
+  const add = value => {
+    if (typeof value !== 'string' || !/^[a-z0-9_-]{1,128}$/i.test(value)) return;
+    ids.add(pathKey(value));
+    // Both names identify episode 1; older versions used the bare BV name.
+    const first = value.match(/^(BV[a-z0-9]{10})(?:_p1)?$/i);
+    if (first) { ids.add(pathKey(first[1])); ids.add(pathKey(first[1] + '_p1')); }
+  };
+  for (const meta of metadata) {
+    if (!meta || typeof meta !== 'object') continue;
+    add(meta.video_id);
+    for (const file of [meta.file_path, meta.video_path]) {
+      if (typeof file === 'string' && path.isAbsolute(file) && equalPath(path.dirname(file), path.join(appDir, 'data')))
+        add(path.basename(file, path.extname(file)));
+    }
+  }
+  try {
+    const url = new URL(form?.video_url || '');
+    if (/(^|\.)bilibili\.com$/i.test(url.hostname)) {
+      const bv = url.pathname.match(/\b(BV[a-z0-9]{10})\b/i)?.[1];
+      const p = url.searchParams.get('p') || '1';
+      if (bv && /^\d+$/.test(p) && Number.isSafeInteger(Number(p)) && Number(p) >= 1) add(bv + '_p' + Number(p));
+    } else if (/(^|\.)youtube\.com$/i.test(url.hostname)) {
+      add(url.searchParams.get('v') || url.pathname.match(/^\/(?:shorts|embed)\/([a-z0-9_-]+)/i)?.[1]);
+    } else if (/^youtu\.be$/i.test(url.hostname)) add(url.pathname.split('/')[1]);
+  } catch { /* Unresolvable active sources are conservatively protected below. */ }
+  return ids;
+}
+
+async function mediaReferences(appDir) {
+  const resultsDir = path.join(appDir, 'note_results');
+  const tasks = new Map();
+  const unknownTasks = [];
+  const get = id => {
+    if (typeof id !== 'string' || !RESULT_NAME.test(id + '.json')) return null;
+    if (!tasks.has(id)) tasks.set(id, { id, status: null, form: null });
+    return tasks.get(id);
+  };
+  for (const entry of await recordEntries(resultsDir)) {
+    if (!entry.isFile()) continue;
+    const status = entry.name.match(TASK_STATUS_NAME);
+    if (status) get(status[1]).status = (await optionalRecord(path.join(resultsDir, entry.name)))?.status || 'UNKNOWN';
+    const result = entry.name.match(RESULT_NAME);
+    if (result) get(result[1]);
+  }
+  const requests = path.join(resultsDir, 'task_requests');
+  for (const entry of await recordEntries(requests)) {
+    const match = entry.isFile() && entry.name.match(RESULT_NAME);
+    if (match) get(match[1]).form = (await optionalRecord(path.join(requests, entry.name)))?.form_data;
+  }
+  const batches = path.join(resultsDir, 'series_batches');
+  for (const entry of await recordEntries(batches)) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
+    const receipt = await optionalRecord(path.join(batches, entry.name));
+    if (!Array.isArray(receipt?.tasks)) { unknownTasks.push(entry.name); continue; }
+    for (const value of receipt.tasks) {
+      const task = get(value?.task_id);
+      if (task) task.form = { video_url: value.video_url, platform: 'bilibili',
+        ...(value.form_data && typeof value.form_data === 'object' ? value.form_data : {}),
+        ...(task.form && typeof task.form === 'object' ? task.form : {}) };
+      else unknownTasks.push(entry.name);
+    }
+  }
+  const removedRecord = await optionalRecord(path.join(resultsDir, 'series_task_removals.json'));
+  const removed = new Set(Array.isArray(removedRecord?.task_ids) ? removedRecord.task_ids : []);
+  const references = new Map();
+  for (const task of tasks.values()) {
+    if (['CANCELLED', 'CANCELED'].includes(task.status)) continue;
+    const failed = ['FAILED', 'ERROR'].includes(task.status);
+    if (removed.has(task.id) && (failed || !task.status)) continue;
+    // A removed history entry can still be executing; keep protecting its files.
+    const audio = await optionalRecord(path.join(resultsDir, task.id + '_audio.json'));
+    const result = await optionalRecord(path.join(resultsDir, task.id + '.json'));
+    // Only complete, readable results can be handled by the saved-note check.
+    // A damaged SUCCESS record must still protect its download for recovery.
+    const completed = task.status === 'SUCCESS' && typeof result?.markdown === 'string' && !!result.markdown.trim() &&
+      typeof result.audio_meta?.video_id === 'string' && /^[a-z0-9_-]{1,128}$/i.test(result.audio_meta.video_id);
+    const ids = completed ? taskMediaIds(appDir, [{ video_id: result.audio_meta.video_id }], null)
+      : taskMediaIds(appDir, [audio, result?.audio_meta], task.form);
+    if (!ids.size) unknownTasks.push(task.id);
+    for (const id of ids) {
+      if (!references.has(id)) references.set(id, []);
+      references.get(id).push({ taskId: task.id, failed, completed });
+    }
+  }
+  return { references, unknownTasks };
+}
+
+function mediaPending(snapshot, videoId, verifiedTasks) {
+  const tasks = (snapshot.references.get(videoId) || []).filter(task => !task.completed || !verifiedTasks.has(task.taskId));
+  if (tasks.length) return { videoId, taskIds: tasks.map(task => task.taskId), reason: tasks.some(task => !task.failed)
+    ? '这份音视频仍被同一集未完成或记录异常的任务使用，已保留；其他分集可继续清理。'
+    : '这份音视频仍供同一集失败任务重试使用，已保留；其他分集可继续清理。' };
+  if (snapshot.unknownTasks.length) return { videoId, taskIds: snapshot.unknownTasks,
+    reason: '有未完成、失败或异常任务无法确定对应音视频，暂时保留可能共享的文件。' };
+  return null;
 }
 
 async function verifySavedNote(vault, appDir, folder, note, record) {
@@ -389,22 +496,23 @@ async function cleanupCompletedMedia({ vault, settings, imports, isActive = () =
   // Never follow a redirected cache directory or recursively scan user uploads.
   if (!within(appDir, dataDir) || !dataStat.isDirectory() || dataStat.isSymbolicLink() ||
       !equalPath(await fs.realpath(dataDir), dataDir)) throw new Error('下载目录不是 BiliNote 内的普通 data 文件夹，已停止清理。');
-  if (await hasActiveTasks(resultsDir)) {
-    summary.pending.push({ reason: 'BiliNote 仍有任务正在生成，音视频清理将等待任务结束。' });
-    return summary;
-  }
+  const references = await mediaReferences(appDir);
   const groups = new Map();
   for (const entry of await fs.readdir(resultsDir, { withFileTypes: true })) {
     const match = entry.isFile() && entry.name.match(RESULT_NAME);
     if (!match) continue;
-    const note = await loadCompleted(appDir, match[1]);
+    let note;
+    try { note = await loadCompleted(appDir, match[1]); }
+    catch { summary.pending.push({ taskId: match[1], reason: '此任务记录无法读取，已保留其音视频。' }); continue; }
     if (!note) continue;
     if (!/^[a-z0-9_-]{1,128}$/i.test(note.videoId)) {
       summary.pending.push({ taskId: note.taskId, reason: '无法确定对应下载文件，已保留音视频。' });
       continue;
     }
-    if (!groups.has(pathKey(note.videoId))) groups.set(pathKey(note.videoId), []);
-    groups.get(pathKey(note.videoId)).push(note);
+    for (const mediaId of taskMediaIds(appDir, [{ video_id: note.videoId }], null)) {
+      if (!groups.has(mediaId)) groups.set(mediaId, []);
+      groups.get(mediaId).push(note);
+    }
   }
   const entries = await fs.readdir(dataDir, { withFileTypes: true });
   const used = new Set();
@@ -416,6 +524,9 @@ async function cleanupCompletedMedia({ vault, settings, imports, isActive = () =
     const candidates = entries.filter(entry => entry.isFile() && MEDIA_EXTENSIONS.has(path.extname(entry.name).toLowerCase()) &&
       pathKey(path.basename(entry.name, path.extname(entry.name))) === videoId);
     if (!candidates.length) continue;
+    const verifiedTasks = new Set(notes.map(note => note.taskId));
+    const pending = mediaPending(references, videoId, verifiedTasks);
+    if (pending) { summary.pending.push(pending); continue; }
     try {
       for (const note of notes) {
         const key = importKey(appDir, folder, note.taskId);
@@ -444,20 +555,21 @@ async function cleanupCompletedMedia({ vault, settings, imports, isActive = () =
         const item = { path: target, bytes: stat.size, taskIds: notes.map(note => note.taskId) };
         summary.candidates.push(item);
         if (dryRun) continue;
-        if (await hasActiveTasks(resultsDir)) {
-          summary.pending.push({ reason: '检测到新生成任务，已暂停音视频清理。' });
-          return summary;
-        }
         for (const note of notes) {
           const fresh = await loadCompleted(appDir, note.taskId);
           if (!fresh || fresh.hash !== note.hash) throw new Error('源笔记正在变化，已保留音视频。');
         }
-        const current = await fs.lstat(target);
-        if (!isActive()) return summary;
+        // A retry can start during the first scan. Inspect task references before
+        // the final file checks, so a rewrite during this scan cannot be deleted.
+        const pendingNow = mediaPending(await mediaReferences(appDir), videoId, verifiedTasks);
+        if (pendingNow) { summary.pending.push({ ...pendingNow, file: candidate.name }); continue; }
         const currentDir = await fs.lstat(dataDir);
-        if (!currentDir.isDirectory() || currentDir.isSymbolicLink() || !equalPath(await fs.realpath(dataDir), dataDir)) throw new Error('下载目录发生变化，已停止清理。');
-        if (!current.isFile() || current.isSymbolicLink() || current.ino !== stat.ino ||
+        if (!currentDir.isDirectory() || currentDir.isSymbolicLink() || currentDir.dev !== dataStat.dev ||
+            currentDir.ino !== dataStat.ino || !equalPath(await fs.realpath(dataDir), dataDir)) throw new Error('下载目录发生变化，已停止清理。');
+        const current = await fs.lstat(target);
+        if (!current.isFile() || current.isSymbolicLink() || current.dev !== stat.dev || current.ino !== stat.ino ||
             current.size !== stat.size || current.mtimeMs !== stat.mtimeMs) throw new Error('下载文件正在变化，将稍后重试。');
+        if (!isActive()) return summary;
         await fs.unlink(target);
         summary.deleted.push(item);
         summary.bytesFreed += item.bytes;
@@ -646,8 +758,8 @@ class SyncSettings extends PluginSettingTab {
       toggle('sharedImages', '共用图片数据', '优先用硬链接，让 BiliNote 和本机仓库共用图片数据。不支持时使用副本。直接修改共用图片的内容会影响两端。'),
       { name: '合并已有图片副本', desc: '内容与 BiliNote 原图一致时，将已有副本转换为硬链接，释放重复占用。',
         render: setting => setting.addButton(button => button.setButtonText('合并图片').onClick(() => plugin.shareImages())) },
-      toggle('autoCleanup', '完成后清理下载音视频', '笔记已保存且截图核对完整后，永久删除对应下载音视频，不经过回收站。保留笔记与图片；重新生成或补截图可能需要重新下载。'),
-      { name: '清理已有下载音视频', desc: '只检查已导入的笔记与图片，不导入其他笔记。永久删除符合条件的下载音视频，重新处理时需要再次下载。',
+      toggle('autoCleanup', '完成后清理下载音视频', '每篇笔记已保存且截图核对完整后，可单独清理对应下载音视频，无需等待其他分集结束。同一份文件仍被生成或重试任务使用时保留。永久删除，不经过回收站；保留笔记与图片。'),
+      { name: '清理已有下载音视频', desc: '逐项清理已导入笔记的下载音视频，无需等所有任务结束；保留仍被其他任务使用的共享文件。不导入其他笔记。永久删除后，重新处理时需要再次下载。',
         render: setting => setting.addButton(button => button.setButtonText('立即清理').onClick(() => plugin.sync(true, true))) },
       { name: '最近检查', desc: [
         plugin.lastError ? '上次导入未完成：' + plugin.lastError : plugin.lastRun ? '上次导入检查：' + new Date(plugin.lastRun).toLocaleString() : '等待你选择笔记。',

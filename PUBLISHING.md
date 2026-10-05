@@ -4,7 +4,7 @@
 
 ## 已准备
 
-- 插件 ID：`bilinote-sync`；名称：`BiliNote Sync`；当前版本：`1.4.1`。
+- 插件 ID：`bilinote-sync`；名称：`BiliNote Sync`；当前版本：`1.4.2`。
 - 根目录包含可读源代码 `main.js`、`manifest.json`、`styles.css`、README、MIT LICENSE、测试与检查脚本。
 - manifest 设置 `isDesktopOnly: true`，最低版本为本次实际验证的 1.13.7；没有声明未经验证的更老版本兼容性。
 - README 披露仓库外文件访问、图片硬链接、缓存永久删除、平台限制和外部依赖。
@@ -20,13 +20,13 @@
 
 ## 2. 发布 GitHub Release
 
-Tag 精确填写 **1.4.1**，与 manifest 的 version 完全相同，不加 `v`。推送默认分支和版本标签后，GitHub Actions 会检查 Windows 与 Linux 构建，为以下附件生成并验证来源证明，再创建正式 Release：
+Tag 精确填写 **1.4.2**，与 manifest 的 version 完全相同，不加 `v`。推送默认分支和版本标签后，GitHub Actions 会检查 Windows 与 Linux 构建，为以下附件生成并验证来源证明，再创建正式 Release：
 
 1. `main.js`
 2. `manifest.json`
 3. `styles.css`
 
-这些文件由 `npm run build` 放在 `.release/1.4.1/`。等待 Actions 成功后确认三个附件都存在。只上传一个 ZIP 或使用 GitHub 自动生成的源码 ZIP，不能代替这三个附件。
+这些文件由 `npm run build` 放在 `.release/1.4.2/`。等待 Actions 成功后确认三个附件都存在。只上传一个 ZIP 或使用 GitHub 自动生成的源码 ZIP，不能代替这三个附件。
 
 构建回归检查会从没有根目录 `main.js`、`styles.css` 的目录开始，核对重新生成的文件与源码一致。来源证明由 GitHub 托管流水线使用临时凭据签发，无需上传个人 API Key 或签名私钥。
 
